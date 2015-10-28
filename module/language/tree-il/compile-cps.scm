@@ -555,6 +555,17 @@
                       ($ (lp args ktail)))))))))))
       ((prim-instruction name)
        => (lambda (instruction)
+            (define (box+adapt-arity cps k src out)
+              (case instruction
+                ((bv-f32-ref bv-f64-ref)
+                 (with-cps cps
+                   (letv f64)
+                   (let$ k (adapt-arity k src out))
+                   (letk kbox ($kargs ('f64) (f64)
+                                ($continue k src ($primcall 'f64->scm (f64)))))
+                   kbox))
+                (else
+                 (adapt-arity cps k src out))))
             (convert-args cps args
               (lambda (cps args)
                 ;; Tree-IL primcalls are sloppy, in that it could be
@@ -566,7 +577,7 @@
                   ((out . in)
                    (if (= in (length args))
                        (with-cps cps
-                         (let$ k (adapt-arity k src out))
+                         (let$ k (box+adapt-arity k src out))
                          (build-term
                            ($continue k src
                              ($primcall instruction args))))

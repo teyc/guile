@@ -673,6 +673,24 @@ minimum, and maximum."
 
 
 ;;;
+;;; Unboxed double-precision floating-point numbers.
+;;;
+
+(define-type-checker (scm->f64 scm)
+  (check-type scm &real -inf.0 +inf.0))
+(define-type-inferrer (scm->f64 scm result)
+  (restrict! scm &flonum -inf.0 +inf.0)
+  (define! result &flonum (&min scm) (&max scm)))
+
+(define-type-checker (f64->scm f64)
+  #t)
+(define-type-inferrer (f64->scm f64 result)
+  (define! result &flonum (&min f64) (&max f64)))
+
+
+
+
+;;;
 ;;; Bytevectors.
 ;;;
 
