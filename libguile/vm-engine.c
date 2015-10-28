@@ -3165,13 +3165,14 @@ VM_NAME (scm_i_thread *thread, struct scm_vm *vp,
   do {                                                                  \
     scm_t_uint8 dst, idx, src;                                          \
     scm_t_signed_bits i;                                                \
-    SCM bv, scm_idx, val;                                               \
+    SCM bv, scm_idx;                                                    \
+    double val;                                                         \
     type *float_ptr;                                                    \
 									\
     UNPACK_8_8_8 (op, dst, idx, src);                                   \
-    bv = SP_REF (dst);                                               \
-    scm_idx = SP_REF (idx);                                          \
-    val = SP_REF (src);                                              \
+    bv = SP_REF (dst);                                                  \
+    scm_idx = SP_REF (idx);                                             \
+    val = SP_REF_F64 (src);                                             \
     VM_VALIDATE_BYTEVECTOR (bv, "bv-" #stem "-set!");                   \
     i = SCM_I_INUM (scm_idx);                                           \
     float_ptr = (type *) (SCM_BYTEVECTOR_CONTENTS (bv) + i);            \
@@ -3180,11 +3181,12 @@ VM_NAME (scm_i_thread *thread, struct scm_vm *vp,
                     && (i >= 0)                                         \
                     && (i + size <= SCM_BYTEVECTOR_LENGTH (bv))         \
                     && (ALIGNED_P (float_ptr, type))))                  \
-      *float_ptr = scm_to_double (val);                                 \
+      *float_ptr = val;                                                 \
     else                                                                \
       {                                                                 \
+        SCM boxed = scm_from_double (val);                              \
         SYNC_IP ();                                                     \
-        scm_bytevector_ ## fn_stem ## _native_set_x (bv, scm_idx, val); \
+        scm_bytevector_ ## fn_stem ## _native_set_x (bv, scm_idx, boxed); \
       }                                                                 \
     NEXT (1);                                                           \
   } while (0)

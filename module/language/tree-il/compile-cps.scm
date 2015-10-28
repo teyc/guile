@@ -566,6 +566,22 @@
                    kbox))
                 (else
                  (adapt-arity cps k src out))))
+            (define (unbox-arg cps arg have-arg)
+              (with-cps cps
+                (letv f64)
+                (let$ body (have-arg f64))
+                (letk kunboxed ($kargs ('f64) (f64) ,body))
+                (build-term
+                  ($continue kunboxed src ($primcall 'scm->f64 (arg))))))
+            (define (unbox-args cps args have-args)
+              (case instruction
+                ((bv-f32-set! bv-f64-set!)
+                 (match args
+                   ((bv idx val)
+                    (unbox-arg cps val
+                               (lambda (cps val)
+                                 (have-args cps (list bv idx val)))))))
+                (else (have-args cps args))))
             (convert-args cps args
               (lambda (cps args)
                 ;; Tree-IL primcalls are sloppy, in that it could be
@@ -578,9 +594,13 @@
                    (if (= in (length args))
                        (with-cps cps
                          (let$ k (box+adapt-arity k src out))
-                         (build-term
-                           ($continue k src
-                             ($primcall instruction args))))
+                         ($ (unbox-args
+                             args
+                             (lambda (cps args)
+                               (with-cps cps
+                                 (build-term
+                                   ($continue k src
+                                     ($primcall instruction args))))))))
                        (with-cps cps
                          (letv prim)
                          (letk kprim ($kargs ('prim) (prim)
